@@ -1,4 +1,4 @@
-package starterbot;
+package stoplookingatmybot;
 
 import robocode.util.Utils;
 

@@ -1,4 +1,4 @@
-package starterbot;
+package stoplookingatmybot;
 
 import java.awt.geom.*; // for Point2D's
 

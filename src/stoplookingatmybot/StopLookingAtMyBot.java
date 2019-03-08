@@ -1,4 +1,4 @@
-package starterbot;
+package stoplookingatmybot;
 
 import robocode.*;
 import robocode.util.Utils;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * StarterBot - a robot by (your name here)
  */
-public class StarterBot extends AdvancedRobot {
+public class StopLookingAtMyBot extends AdvancedRobot {
 
     public static int BINS = 47;
     public static double _surfStats[] = new double[BINS];

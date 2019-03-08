@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    compile files('/Users/jharder/robocode/libs/robocode.jar')
+    compile files('/Users/chadhicks/robocode/libs/robocode.jar')
 }
 
 sourceSets {
