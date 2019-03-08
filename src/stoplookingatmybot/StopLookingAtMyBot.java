@@ -76,6 +76,16 @@ public class StopLookingAtMyBot extends AdvancedRobot {
      * onScannedRobot: What to do when you see another robot
      */
     public void onScannedRobot(ScannedRobotEvent e) {
+        /* For effect only, doing this every turn could cause seizures. This makes it change every 32 turns. */
+        if(e.getTime() % 32 == 0) {
+            /* Set some crazy colors! */
+            setBodyColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setGunColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setRadarColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setBulletColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setScanColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+        }
+
         this._myLocation = new Point2D.Double(this.getX(), this.getY());
 
         // http://robowiki.net/wiki/Lateral_Velocity
