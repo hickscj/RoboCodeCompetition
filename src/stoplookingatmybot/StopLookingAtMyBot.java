@@ -6,7 +6,9 @@ import robocode.util.Utils;
 import java.awt.*;
 import java.awt.geom.*; // for Point2D's
 import java.util.ArrayList; // for collection of waves
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 // API help : https://robocode.sourceforge.io/docs/robocode/robocode/Robot.html
 
@@ -20,9 +22,9 @@ public class StopLookingAtMyBot extends AdvancedRobot {
     public Point2D.Double _myLocation;    // our bot's location
     public Point2D.Double _enemyLocation; // enemy bot's location
 
-    public ArrayList _enemyWaves;
-    public ArrayList _surfDirections;
-    public ArrayList _surfAbsBearings;
+    public ArrayList<EnemyWave> _enemyWaves;
+    public ArrayList<Integer> _surfDirections;
+    public ArrayList<Double> _surfAbsBearings;
 
 
     public static double _oppEnergy = 100.0;
@@ -51,9 +53,9 @@ public class StopLookingAtMyBot extends AdvancedRobot {
     public void run() {
         // Initialization of the robot should be put here
 
-        this._enemyWaves = new ArrayList();
-        this._surfDirections = new ArrayList();
-        this._surfAbsBearings = new ArrayList();
+        this._enemyWaves = new ArrayList<>();
+        this._surfDirections = new ArrayList<>();
+        this._surfAbsBearings = new ArrayList<>();
 
         this.setAdjustGunForRobotTurn(true);
         this.setAdjustRadarForGunTurn(true);
@@ -91,8 +93,8 @@ public class StopLookingAtMyBot extends AdvancedRobot {
             ew.fireTime = getTime() - 1;
             ew.bulletVelocity = this.bulletVelocity(bulletPower);
             ew.distanceTraveled = this.bulletVelocity(bulletPower);
-            ew.direction = ((Integer) this._surfDirections.get(2)).intValue();
-            ew.directAngle = ((Double) this._surfAbsBearings.get(2)).doubleValue();
+            ew.direction = (this._surfDirections.get(2)).intValue();
+            ew.directAngle = (this._surfAbsBearings.get(2)).doubleValue();
             ew.fireLocation = (Point2D.Double) this._enemyLocation.clone();
 
             this._enemyWaves.add(ew);
@@ -153,13 +155,13 @@ public class StopLookingAtMyBot extends AdvancedRobot {
 
 
     private void updateWaves() {
-        for (int x = 0; x < this._enemyWaves.size(); x++) {
-            EnemyWave ew = (EnemyWave) this._enemyWaves.get(x);
-
+        ListIterator<EnemyWave> it = this._enemyWaves.listIterator();
+        EnemyWave ew;
+        while(it.hasNext()) {
+            ew = it.next();
             ew.distanceTraveled = (getTime() - ew.fireTime) * ew.bulletVelocity;
             if (ew.distanceTraveled > this._myLocation.distance(ew.fireLocation) + 50) {
-                this._enemyWaves.remove(x);
-                x--;
+                it.remove();
             }
         }
     }
@@ -168,16 +170,13 @@ public class StopLookingAtMyBot extends AdvancedRobot {
     private EnemyWave getClosestSurfableWave() {
         double closestDistance = 50000; // arbitrary big number
         EnemyWave surfWave = null;
-        for (int x = 0; x < this._enemyWaves.size(); x++) {
-            EnemyWave ew = (EnemyWave) this._enemyWaves.get(x);
+        for (EnemyWave ew : this._enemyWaves) {
             double distance = this._myLocation.distance(ew.fireLocation) - ew.distanceTraveled;
-
             if (distance > ew.bulletVelocity && distance < closestDistance) {
                 surfWave = ew;
                 closestDistance = distance;
             }
         }
-
         return surfWave;
     }
 
@@ -219,10 +218,8 @@ public class StopLookingAtMyBot extends AdvancedRobot {
             Point2D.Double hitBulletLocation = new Point2D.Double(e.getBullet().getX(), e.getBullet().getY());
             EnemyWave hitWave = null;
 
-            // Look through the EnemyWaves, and find one that could've hit us.
-            for (int x = 0; x < this._enemyWaves.size(); x++) {
-                EnemyWave ew = (EnemyWave) this._enemyWaves.get(x);
-
+            // Look through the EnemyWaves, and find on that could've hit us.
+            for (EnemyWave ew : this._enemyWaves) {
                 if (Math.abs(ew.distanceTraveled - this._myLocation.distance(ew.fireLocation)) < 50
                         && Math.abs(this.bulletVelocity(e.getBullet().getPower()) - ew.bulletVelocity) < 0.001) {
                     hitWave = ew;
@@ -234,7 +231,7 @@ public class StopLookingAtMyBot extends AdvancedRobot {
                 this.logHit(hitWave, hitBulletLocation);
 
                 // we can remove this wave now, of course.
-                this._enemyWaves.remove(this._enemyWaves.lastIndexOf(hitWave));
+                this._enemyWaves.remove(hitWave);
             }
         }
     }
