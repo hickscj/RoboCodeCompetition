@@ -24,12 +24,12 @@ public class WaveBullet
 
     public double getBulletSpeed()
     {
-        return 20 - power * 3;
+        return 20 - power * 4;
     }
 
     public double maxEscapeAngle()
     {
-        return Math.asin(8/getBulletSpeed());
+        return Math.asin(10/getBulletSpeed());
     }
 
     public boolean checkHit(double enemyX, double enemyY, long currentTime)
