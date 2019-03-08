@@ -219,7 +219,7 @@ public class StopLookingAtMyBot extends AdvancedRobot {
             Point2D.Double hitBulletLocation = new Point2D.Double(e.getBullet().getX(), e.getBullet().getY());
             EnemyWave hitWave = null;
 
-            // Look through the EnemyWaves, and find on that could've hit us.
+            // Look through the EnemyWaves, and find one that could've hit us.
             for (int x = 0; x < this._enemyWaves.size(); x++) {
                 EnemyWave ew = (EnemyWave) this._enemyWaves.get(x);
 
