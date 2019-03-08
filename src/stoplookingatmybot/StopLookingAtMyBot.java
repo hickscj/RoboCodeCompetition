@@ -1,12 +1,15 @@
 package stoplookingatmybot;
 
-import robocode.*;
+import robocode.AdvancedRobot;
+import robocode.HitByBulletEvent;
+import robocode.HitWallEvent;
+import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
 import java.awt.*;
-import java.awt.geom.*; // for Point2D's
-import java.util.ArrayList; // for collection of waves
-import java.util.Iterator;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -47,6 +50,27 @@ public class StopLookingAtMyBot extends AdvancedRobot {
                                              // GuessFactor 0 at the middle.
 
 
+
+
+    /* How many times we have decided to not change direction. */
+    public int sameDirectionCounter = 0;
+
+    /* How long we should continue to move in the current direction */
+    public long moveTime = 1;
+
+    /* The direction we are moving in */
+    public static int moveDirection = 1;
+
+    /* The speed of the last bullet that hit us, used in determining how far to move before deciding to change direction again. */
+    public static double lastBulletSpeed = 15.0;
+
+    public double wallStick = 120;
+
+
+
+
+
+
     /**
      * run: StarterBot's default behavior
      */
@@ -61,8 +85,112 @@ public class StopLookingAtMyBot extends AdvancedRobot {
         this.setAdjustRadarForGunTurn(true);
 
         do {
-            this.turnRadarRightRadians(Double.POSITIVE_INFINITY);
+            if (getRadarTurnRemaining() == 0.0) {
+                setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+            }
+            execute();
         } while (true);
+    }
+
+    private void getWeird(ScannedRobotEvent e) {
+        /* For effect only, doing this every turn could cause seizures. This makes it change every 32 turns. */
+        if(e.getTime() % 32 == 0) {
+            /* Set some crazy colors! */
+            setBodyColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setGunColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setRadarColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setBulletColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setScanColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+
+            /* Change the wall stick distance, to make us even more unpredictable */
+            wallStick = 120 + Math.random()*40;
+        }
+
+        double absBearing = e.getBearingRadians() + getHeadingRadians();
+        double distance = e.getDistance() + (Math.random()-0.5)*5.0;
+
+        /* Radar Turn */
+        double radarTurn = Utils.normalRelativeAngle(absBearing
+                // Subtract current radar heading to get turn required
+                - getRadarHeadingRadians() );
+
+        double baseScanSpan = (18.0 + 36.0*Math.random());
+        // Distance we want to scan from middle of enemy to either side
+        double extraTurn = Math.min(Math.atan(baseScanSpan / distance), Math.PI/4.0);
+        setTurnRadarRightRadians(radarTurn + (radarTurn < 0 ? -extraTurn : extraTurn));
+
+        /* Movement */
+        if(--moveTime <= 0) {
+            distance = Math.max(distance, 100 + Math.random()*50) * 1.25;
+            moveTime = 50 + (long)(distance / lastBulletSpeed);
+
+            ++sameDirectionCounter;
+
+            /* Determine if we should change direction */
+            if(Math.random() < 0.5 || sameDirectionCounter > 16) {
+                moveDirection = -moveDirection;
+                sameDirectionCounter = 0;
+            }
+        }
+
+
+        /* Move perpendicular to our enemy, based on our movement direction */
+        double goalDirection = absBearing-Math.PI/2.0*moveDirection;
+
+        /* This is too clean for crazy! Add some randomness. */
+        goalDirection += (Math.random()-0.5) * (Math.random()*2.0 + 1.0);
+
+        /* Smooth around the walls, if we smooth too much, reverse direction! */
+        double x = getX();
+        double y = getY();
+        double smooth = 0;
+
+        /* Calculate the smoothing we would end up doing if we actually smoothed walls. */
+        Rectangle2D fieldRect = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
+
+        while (!fieldRect.contains(x+Math.sin(goalDirection)*wallStick, y+ Math.cos(goalDirection)*wallStick)) {
+            /* turn a little toward enemy and try again */
+            goalDirection += moveDirection*0.1;
+            smooth += 0.1;
+        }
+
+        /* If we would have smoothed to much, then reverse direction. */
+        /* Add && sameDirectionCounter != 0 check to make this smarter */
+        if(smooth > 0.5 + Math.random()*0.125) {
+            moveDirection = -moveDirection;
+            sameDirectionCounter = 0;
+        }
+
+        double turn = Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
+
+        /* Adjust so we drive backwards if the turn is less to go backwards */
+        if (Math.abs(turn) > Math.PI/2) {
+            turn = Utils.normalRelativeAngle(turn + Math.PI);
+            setBack(100);
+        } else {
+            setAhead(100);
+        }
+
+        setTurnRightRadians(turn);
+
+
+        /* Gun */
+        double bulletPower = 1.0 + Math.random()*2.0;
+        double bulletSpeed = 20 - 3 * bulletPower;
+
+        /* Aim at a random offset in the general direction the enemy is heading. */
+        double enemyLatVel = e.getVelocity()*Math.sin(e.getHeadingRadians() - absBearing);
+        double escapeAngle = Math.asin(8.0 / bulletSpeed);
+
+        /* Signum produces 0 if it is not moving, meaning we will fire directly head on at an unmoving target */
+        double enemyDirection = Math.signum(enemyLatVel);
+        double angleOffset = escapeAngle * enemyDirection * Math.random();
+        setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + angleOffset - getGunHeadingRadians()));
+
+        /* Adding this if so it does not kill itself by firing. */
+        if(getEnergy() > bulletPower) {
+            setFire(bulletPower);
+        }
     }
 
 
@@ -76,6 +204,9 @@ public class StopLookingAtMyBot extends AdvancedRobot {
      * onScannedRobot: What to do when you see another robot
      */
     public void onScannedRobot(ScannedRobotEvent e) {
+
+        getWeird(e);
+
         this._myLocation = new Point2D.Double(this.getX(), this.getY());
 
         // http://robowiki.net/wiki/Lateral_Velocity
@@ -212,13 +343,15 @@ public class StopLookingAtMyBot extends AdvancedRobot {
      * onHitByBullet: What to do when you're hit by a bullet
      */
     public void onHitByBullet(HitByBulletEvent e) {
+        lastBulletSpeed = e.getVelocity();
+
         // if the _enemyWaves collection is empty, we must have missed the
         // detection of this wave somehow.
         if (!this._enemyWaves.isEmpty()) {
             Point2D.Double hitBulletLocation = new Point2D.Double(e.getBullet().getX(), e.getBullet().getY());
             EnemyWave hitWave = null;
 
-            // Look through the EnemyWaves, and find on that could've hit us.
+            // Look through the EnemyWaves, and find one that could've hit us.
             for (EnemyWave ew : this._enemyWaves) {
                 if (Math.abs(ew.distanceTraveled - this._myLocation.distance(ew.fireLocation)) < 50
                         && Math.abs(this.bulletVelocity(e.getBullet().getPower()) - ew.bulletVelocity) < 0.001) {
@@ -315,7 +448,10 @@ public class StopLookingAtMyBot extends AdvancedRobot {
      */
     public void onHitWall(HitWallEvent e) {
         // Replace the next line with any behavior you would like
-        back(20);
+        back(100);
+//        turnRight(180);
+
+
     }
 
 
