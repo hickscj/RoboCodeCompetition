@@ -76,6 +76,16 @@ public class StopLookingAtMyBot extends AdvancedRobot {
      * onScannedRobot: What to do when you see another robot
      */
     public void onScannedRobot(ScannedRobotEvent e) {
+        /* For effect only, doing this every turn could cause seizures. This makes it change every 32 turns. */
+        if(e.getTime() % 32 == 0) {
+            /* Set some crazy colors! */
+            setBodyColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setGunColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setRadarColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setBulletColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setScanColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+        }
+
         this._myLocation = new Point2D.Double(this.getX(), this.getY());
 
         // http://robowiki.net/wiki/Lateral_Velocity
@@ -124,7 +134,7 @@ public class StopLookingAtMyBot extends AdvancedRobot {
             }
         }
 
-        double power = Math.min(3, Math.max(0.1, 2/* some function */));
+        double power = Math.min(3, Math.max(0.1, someFunction()));
         // dont try to figure out the direction they're moving
         // if they're not moving, just use the direction we had before
         if(e.getVelocity() != 0) {
@@ -153,6 +163,32 @@ public class StopLookingAtMyBot extends AdvancedRobot {
         }
     }
 
+
+    private double someFunction() {
+        double usAndThem = this._myLocation.distance(this._enemyLocation.x, this._enemyLocation.y);
+//        return 2 - ((1000/usAndThem) * .003);
+//
+//
+////        return 1000 / usAndThem;
+//
+
+        if (usAndThem < 50) {
+            return 3;
+        } else if (usAndThem < 100) {
+            return 2.5;
+        } else if (usAndThem < 200) {
+            return 2;
+        } else if (usAndThem < 250) {
+            return 1.5;
+        } else if (usAndThem < 400) {
+            return 1;
+        } else if (usAndThem < 600) {
+            return .8;
+        } else if (usAndThem < 700) {
+            return .5;
+        }
+        return .1;
+    }
 
     private void updateWaves() {
         ListIterator<EnemyWave> it = this._enemyWaves.listIterator();
@@ -248,7 +284,7 @@ public class StopLookingAtMyBot extends AdvancedRobot {
 
         do { // the rest of these code comments are rozu's
             moveAngle = wallSmoothing(predictedPosition,
-                    absoluteBearing(surfWave.fireLocation, predictedPosition) + (direction * (Math.PI / 2)),
+                    absoluteBearing(surfWave.fireLocation, predictedPosition) + (direction * ((Math.PI / 2) - .37)),
                     direction)
                     - predictedHeading;
             moveDir = 1;
@@ -301,9 +337,9 @@ public class StopLookingAtMyBot extends AdvancedRobot {
 
         double goAngle = absoluteBearing(surfWave.fireLocation, this._myLocation);
         if (dangerLeft < dangerRight) {
-            goAngle = wallSmoothing(this._myLocation, goAngle - (Math.PI / 2), -1);
+            goAngle = wallSmoothing(this._myLocation, goAngle - ((Math.PI / 2) - .37), -1);
         } else {
-            goAngle = wallSmoothing(this._myLocation, goAngle + (Math.PI / 2), 1);
+            goAngle = wallSmoothing(this._myLocation, goAngle + ((Math.PI / 2) - .37), 1);
         }
 
         setBackAsFront(this, goAngle);
